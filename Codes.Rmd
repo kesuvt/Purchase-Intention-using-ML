@@ -30,7 +30,7 @@ library(e1071)
 ```
 
 
-
+# Link to teh data : https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset
 Loading Data
 ```{r}
 set.seed(12345)
