@@ -1,0 +1,245 @@
+---
+title: "BI_CW"
+author: "Akshay"
+date: "2023-12-04"
+output: html_document
+---
+
+Installing necessary packages
+```{r}
+install.packages("rstatix")
+install.packages("vctrs")
+install.packages("devtools")
+devtools::install_github("dongyuanwu/RSBID")
+install.packages("dplyr")
+install.packages("corrplot")
+install.packages("caret")
+install.packages("magrittr")
+install.packages("MLmetrics")
+install.packages("rpart.plot")
+install.packages("e1071")
+library(rstatix)
+library("RSBID")
+library(dplyr)
+library(corrplot)
+library(caret)
+library(magrittr)
+library(MLmetrics)
+library(rpart.plot)
+library(e1071)
+```
+
+
+
+Loading Data
+```{r}
+set.seed(12345)
+df <- read.csv("C:/Users/akvt5/OneDrive/Documents/Academics/UU Course Docs/Semester 2/COM 735/online_shoppers_intention.csv", stringsAsFactors = TRUE)
+
+```
+
+
+Understanding data
+```{r}
+# View(df)
+dim(df)
+str(df)
+summary(df)
+table(df$Revenue)
+names(df)
+
+```
+# Required pre-processes
+1) Converting to factor (Done)
+2) missing values (Done)
+3) Duplicate values (Done)
+4) Outliers ()
+5) Variable selection by correlation plot
+6) balancing (Done)
+7) Scaling (Done)
+
+
+```{r}
+Names <- c("SpecialDay","Month","OperatingSystems","Browser","Region","TrafficType","VisitorType","Weekend","Revenue" )
+
+for (i in Names) {
+  df[,i] <- as.factor(df[,i])
+  
+}
+
+str(df)
+```
+
+
+
+```{r}
+# Checking for missing values
+sum(is.na.data.frame(df))
+
+```
+
+
+
+
+```{r}
+# Removing duplicate entries
+library(dplyr)
+dim(df)
+df <- distinct(df)
+dim(df)
+
+```
+
+```{r}
+# plotting boxplots to identify outliers
+
+X <- c("Administrative","Administrative_Duration","Informational","Informational_Duration","ProductRelated","ProductRelated_Duration","BounceRates","ExitRates","PageValues")
+
+for (j in X) {
+  boxplot(df[,j], xlab = j)
+  
+}
+
+# There seems to be too many outliers to be seen from the boxlots
+# Counting the extreme outliers in each variable
+
+for (j in X) {
+  Outliers <- identify_outliers(j, data = df)
+  print("No. of outliers in")
+  print (j)
+  print(nrow(Outliers[Outliers$is.extreme == TRUE,]))
+  
+}
+```
+There are too many extreme outliers according to this result. So, removing them is not a wise decision. Instead models that are tolerant to outliers will be used to construct the classifier
+
+
+
+```{r}
+# Correlation pot
+df.cor <- cor(df[-c(10:18)])
+corrplot(df.cor)
+
+# calculating the extreme correlations
+cor(df$ProductRelated,df$ProductRelated_Duration)
+cor(df$BounceRates,df$ExitRates)
+cor(df$Administrative,df$Administrative_Duration)
+
+# removing features
+ df <- df[-c(5,7)]
+
+
+```
+
+
+
+
+```{r}
+# Data balancing with SMOTE_NC
+
+# Class distribution before SMOTE
+(T <- table(df$Revenue))
+barplot(T)
+
+# SMOTE
+df <- SMOTE_NC(df,16)
+
+# Class distribution after SMOTE
+Y <- table (df$Revenue)
+barplot(Y, main = "Distribution of class variable", xlab = "Revenue", ylab = "frequency", col = blues9)
+
+```
+
+
+
+```{r}
+# Scaling
+
+Y <- c("Administrative","Administrative_Duration","Informational","Informational_Duration","ProductRelated_Duration","ExitRates","PageValues")
+for (j in Y) {
+  df[,j] <- scale(df[,j])
+  
+}
+
+summary(df)
+```
+
+
+
+
+
+```{r}
+# Splitting the data into train(80%) and test(20%)
+
+df <- df[,-7]
+names(df)
+train.index <- df$Revenue%>%
+  createDataPartition(p = 0.8, list = FALSE)
+train <- df[train.index,]
+test <- df[-train.index,]
+
+```
+
+
+```{r}
+# Classification tree
+CT_Model <- rpart(train$Revenue~., data = train)
+CT_Model
+rpart.plot(CT_Model)
+CT_pred <- predict(CT_Model, test, type = 'class')
+confusionMatrix(CT_pred,test$Revenue)
+print("Accuracy")
+Accuracy(y_pred = CT_pred, y_true = test$Revenue)
+print("Precision")
+Precision(y_pred = CT_pred, y_true = test$Revenue, positive = NULL)
+print("Recall")
+Recall(y_pred = CT_pred, y_true = test$Revenue, positive = NULL)
+print("F1 Score")
+F1_Score(y_pred = CT_pred, y_true = test$Revenue, positive = NULL)
+
+```
+
+
+```{r}
+# c) SVM Model
+
+
+SVM_Model <- svm(train$Revenue~., data=train, kernel="linear", cost=0.10,scale=FALSE)
+summary(SVM_Model)
+SVM_pred <- predict(SVM_Model, test)
+confusionMatrix(SVM_pred,test$Revenue)
+print("Accuracy")
+Accuracy(y_pred = SVM_pred, y_true = test$Revenue)
+print("Precision")
+Precision(y_pred = SVM_pred, y_true = test$Revenue, positive = NULL)
+print("Recall")
+Recall(y_pred = SVM_pred, y_true = test$Revenue, positive = NULL)
+print("F1 Score")
+F1_Score(y_pred = SVM_pred, y_true = test$Revenue, positive = NULL)
+
+```
+
+
+
+
+```{r}
+# Random Forest Model
+library(randomForest)
+RF_Model <- randomForest(train$Revenue~., data = train, ntree = 500)
+summary(RF_Model)
+RF_pred <- predict(RF_Model, test)
+confusionMatrix(RF_pred,test$Revenue)
+print("Accuracy")
+Accuracy(y_pred = RF_pred, y_true = test$Revenue)
+print("Precision")
+Precision(y_pred = RF_pred, y_true = test$Revenue, positive = NULL)
+print("Recall")
+Recall(y_pred = RF_pred, y_true = test$Revenue, positive = NULL)
+print("F1 Score")
+F1_Score(y_pred = RF_pred, y_true = test$Revenue, positive = NULL)
+
+```
+
+
+
+
