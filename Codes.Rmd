@@ -34,7 +34,7 @@ library(e1071)
 Loading Data
 ```{r}
 set.seed(12345)
-df <- read.csv("C:/Users/akvt5/OneDrive/Documents/Academics/UU Course Docs/Semester 2/COM 735/online_shoppers_intention.csv", stringsAsFactors = TRUE)
+df <- read.csv(".../online_shoppers_intention.csv", stringsAsFactors = TRUE)
 
 ```
 
@@ -50,13 +50,13 @@ names(df)
 
 ```
 # Required pre-processes
-1) Converting to factor (Done)
-2) missing values (Done)
-3) Duplicate values (Done)
-4) Outliers ()
+1) Converting to factor
+2) missing values
+3) Duplicate values
+4) Outliers
 5) Variable selection by correlation plot
-6) balancing (Done)
-7) Scaling (Done)
+6) balancing
+7) Scaling
 
 
 ```{r}
